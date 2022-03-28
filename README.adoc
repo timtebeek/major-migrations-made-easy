@@ -1,0 +1,286 @@
+= Major migrations made easy with OpenRewrite
+
+[quote, Introduction to OpenRewrite, https://docs.openrewrite.org]
+____
+OpenRewrite enables large-scale distributed source code refactoring for framework migrations, vulnerability patches, and API migrations with an early focus on the Java language.
+____
+
+To demonstrate OpenRewrite, this blogpost will walk through upgrading a Spring Boot 1.5 application to 2.5+.
+Along the way we will pick up JUnit 5, and migrate from Java 8 to 17, with minimal manual intervention.
+
+We'll start with the Spring PetClinic Sample Application, back as it almost five years ago in 2017!
+You can follow along by copy-pasting the commands and viewing the changes made in each step.
+You'll need git, patch and https://sdkman.io/[SDKMAN], to easily switch between Java versions.
+Be sure to commit your changes once every few steps to get a clean diff of changes.
+
+== Checkout Spring PetClinic 1.5.x
+[source,bash]
+----
+git clone https://github.com/spring-projects/spring-petclinic.git;
+cd spring-petclinic;
+git checkout -b 1.5.x;
+----
+
+=== SDKMAN!
+[quote, The Software Development Kit Manager, https://sdkman.io]
+____
+https://sdkman.io/[SDKMAN!] is a tool for managing parallel versions of multiple Software Development Kits on most Unix based systems.
+It provides a convenient Command Line Interface (CLI) and API for installing, switching, removing and listing Candidates. 
+____
+Through SDKMAN! we'll install and switch between the Java versions used in this blogpost.
+Start by installing and activating a recent Java 8 version. 
+[source,bash]
+----
+# curl -s "https://get.sdkman.io" | bash
+sdk install java 8.0.322-tem
+sdk use java 8.0.322-tem
+----
+Keep the terminal window open to stay on Java 8.
+Or add a `.sdkmanrc` file containing `java=8.0.322-tem` inside `spring-petclinic/`, to switch each time you enter the project folder.
+
+=== Apache Maven wrapper
+Next up we'll switch out the almost 7 years old Takari Maven Wrapper 3.3.3 for the more recent Apache Maven Wrapper version 3.8.5.
+[source,bash]
+----
+./mvnw wrapper:wrapper -Dmaven=3.8.5
+----
+This ensures there's no incompatibilities running more recent plugins and Java versions.
+
+=== Verify
+At any step in the migration we can verify our setup produces a working build by invoking the Maven verify goal.
+[source,bash]
+----
+./mvnw verify
+----
+NOTE: We need neither `clean` nor `install` with well behaved plugins.
+
+== Upgrade to JUnit 5
+To gain a bit of confidence with OpenRewrite, we'll first migrate our application from JUnit 4 to 5.
+JUnit 5 was released in September 2017, yet it's all too common to still see JUnit 4 on existing projects.
+
+Take a moment to think about what would be needed for a JUnit 4 to 5 migration;
+you'll want add new dependencies, remove old dependencies, update imports, swap argument orders in assertions, before getting into more complicated patterns such as replacing `@Rule` usage.
+It should become apparent that while some steps could be achieved with a search-and-replace operation, others are not as clear cut.
+
+Let's get OpenRewrite set up to apply our first automated migration:
+[source,bash]
+----
+./mvnw org.openrewrite.maven:rewrite-maven-plugin:4.21.0:init \ # <1>
+  -Ddependencies=org.openrewrite.recipe:rewrite-testing-frameworks:1.19.0 \ # <2>
+  -DactiveRecipes=org.openrewrite.java.testing.junit5.JUnit5BestPractices # <3>
+git diff # <4>
+----
+<1> We run the https://github.com/openrewrite/rewrite-maven-plugin/commit/5eb473459c89b3d2e68725954b83961e25884e72#diff-fc4bf45cce52d87b08e87c74ad12ec6d162411854ee84c96c19bbf02954c0342R19[recently added InitMojo] to add the `rewrite-maven-plugin` to the `pom.xml`.
+<2> We add a dependency on https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks] to the plugin.
+<3> We activate https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
+<4> The diff should show the plugin added to the project
+
+.`pom.xml` build plugin added after `init`
+[source,diff]
+----
+diff --git a/pom.xml b/pom.xml
+index 6fdc4d1..755b35a 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -206,6 +206,23 @@
+           </dependency>
+         </dependencies>
+       </plugin>
++      <plugin>
++        <groupId>org.openrewrite.maven</groupId>
++        <artifactId>rewrite-maven-plugin</artifactId>
++        <version>4.21.0</version>
++        <configuration>
++          <activeRecipes>
++            <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
++          </activeRecipes>
++        </configuration>
++        <dependencies>
++          <dependency>
++            <groupId>org.openrewrite.recipe</groupId>
++            <artifactId>rewrite-testing-frameworks</artifactId>
++            <version>1.19.0</version>
++          </dependency>
++        </dependencies>
++      </plugin>
+     </plugins>
+   </build>
+   <reporting>
+----
+
+=== JUnit5BestPractices
+If you take a closer look at the added https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
+you'll find it's composed of a `recipeList`, with references defined further down.
+This is a common pattern with OpenRewrite recipes; complex migrations are composed of more fine grained recipes, each of which applies a small step in the full migration.
+
+
+
+
+=== Run OpenRewrite
+TODO TODO TODO
+[source,bash]
+----
+./mvnw rewrite:run
+----
+
+
+== Upgrade to Spring Boot 2.x
+[source,bash]
+----
+./mvnw rewrite:4.21.0:configure \
+  -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.19.0-SNAPSHOT \
+  -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration
+----
+
+[source,bash]
+----
+./mvnw rewrite:run
+----
+
+
+== Fix tests
+
+[source,diff]
+----
+patch -p1 << EOF
+diff --git a/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java b/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
+index b623330..b5294f4 100644
+--- a/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java
+@@ -39,7 +39,7 @@
+         assertThat(constraintViolations.size()).isEqualTo(1);
+         ConstraintViolation<Person> violation = constraintViolations.iterator().next();
+         assertThat(violation.getPropertyPath().toString()).isEqualTo("firstName");
+-        assertThat(violation.getMessage()).isEqualTo("may not be empty");
++        assertThat(violation.getMessage()).isEqualTo("must not be empty");
+     }
+ 
+ }
+diff --git a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+index 5fd6598..ccb5d78 100644
+--- a/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java
+@@ -64,7 +64,7 @@
+     void testShowResourcesVetList() throws Exception {
+         ResultActions actions = mockMvc.perform(get("/vets.json").accept(MediaType.APPLICATION_JSON))
+                 .andExpect(status().isOk());
+-        actions.andExpect(content().contentType("application/json;charset=UTF-8"))
++        actions.andExpect(content().contentTypeCompatibleWith("application/json;charset=UTF-8"))
+                 .andExpect(jsonPath("$.vetList[0].id").value(1));
+     }
+EOF
+----
+
+
+== Java 11
+
+[source,bash]
+----
+./mvnw rewrite:configure \
+  -Ddependencies=org.openrewrite.recipe:rewrite-migrate-java:1.3.0 \
+  -DactiveRecipes=org.openrewrite.java.migrate.Java8toJava11
+./mvnw rewrite:run
+----
+
+
+== Patch java.version
+
+[source,diff]
+----
+patch -p1 << EOF
+diff --git a/pom.xml b/pom.xml
+index 9701237..818e20d 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -17,7 +17,7 @@
+   <properties>
+ 
+     <!-- Generic properties -->
+-    <java.version>1.8</java.version>
++    <java.version>11</java.version>
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+EOF
+----
+
+== Java Cleanup
+
+[source,bash]
+----
+./mvnw rewrite:configure \
+  -DactiveRecipes=org.openrewrite.java.RemoveUnusedImports
+./mvnw rewrite:run
+----
+
+[source,bash]
+----
+./mvnw rewrite:configure \
+  -DactiveRecipes=org.openrewrite.java.cleanup.CommonStaticAnalysis
+./mvnw rewrite:run
+----
+
+== Replace Cobertura with JaCoCo
+
+[source,bash]
+----
+git cherry-pick 60105d5d9a8b64d29927b98cd06d6d811fd4bb52
+./mvnw rewrite:run \
+  -DactiveRecipes=org.openrewrite.maven.ChangePropertyValue \
+  -Dkey=jacoco.version \
+  -DnewValue=0.8.7
+----
+
+== Upgrade JaCoCo & Wro4j
+
+[source,bash]
+----
+patch -p1 << EOF
+diff --git a/pom.xml b/pom.xml
+index 3c16dac..12a6372 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -25,9 +25,9 @@
+     <webjars-bootstrap.version>3.3.6</webjars-bootstrap.version>
+     <webjars-jquery-ui.version>1.11.4</webjars-jquery-ui.version>
+     <webjars-jquery.version>2.2.4</webjars-jquery.version>
+-    <wro4j.version>1.8.0</wro4j.version>
++    <wro4j.version>1.10.1</wro4j.version>
+ 
+-    <jacoco.version>0.8.1</jacoco.version>
++    <jacoco.version>0.8.7</jacoco.version>
+ 
+   </properties>
+EOF
+----
+
+
+== Java 17
+[source,bash]
+----
+./mvnw rewrite:run \
+  -DactiveRecipes=org.openrewrite.maven.ChangePropertyValue \
+  -Dkey=java.version \
+  -DnewValue=17
+----
+
+=== Java 17
+[source,bash]
+----
+# Enable auto-env through the sdkman_auto_env config
+# Add key=value pairs of SDKs to use below
+java=17.0.2-tem
+----
+
+== Remove plugin
+[source,bash]
+----
+./mvnw rewrite:remove
+----
+
+
+== Travis CI
+
+
+== Versions
+rewrite-maven-plugin:4.21.0
+rewrite-spring:4.18.0
