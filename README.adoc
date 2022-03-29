@@ -8,12 +8,14 @@ ____
 To demonstrate OpenRewrite, this blogpost will walk through upgrading a Spring Boot 1.5 application to 2.5+.
 Along the way we will pick up JUnit 5, and migrate from Java 8 to 17, with minimal manual intervention.
 
-We'll start with the Spring PetClinic Sample Application, back as it almost five years ago in 2017!
+We'll start with the Spring PetClinic Sample Application, back as it was almost five years ago in 2017!
 You can follow along by copy-pasting the commands and viewing the changes made in each step.
-You'll need git, patch and https://sdkman.io/[SDKMAN], to easily switch between Java versions.
-Be sure to commit your changes once every few steps to get a clean diff of changes.
+You'll need git, patch and https://sdkman.io/[SDKMAN!], to easily switch between Java versions.
+Be sure to commit your changes after each command to get a clean diff of changes at each step.
 
 == Checkout Spring PetClinic 1.5.x
+Start by checking out the relevant branch of Spring PetClinic locally.
+
 [source,bash]
 ----
 git clone https://github.com/spring-projects/spring-petclinic.git;
@@ -28,23 +30,27 @@ https://sdkman.io/[SDKMAN!] is a tool for managing parallel versions of multiple
 It provides a convenient Command Line Interface (CLI) and API for installing, switching, removing and listing Candidates. 
 ____
 Through SDKMAN! we'll install and switch between the Java versions used in this blogpost.
-Start by installing and activating a recent Java 8 version. 
+Start by installing recent versions of Java 8, 11 and 17.
+To start we'll activate Java 8.
 [source,bash]
 ----
 # curl -s "https://get.sdkman.io" | bash
 sdk install java 8.0.322-tem
+sdk install java 11.0.14-tem
+sdk install java 17.0.2-tem
 sdk use java 8.0.322-tem
 ----
 Keep the terminal window open to stay on Java 8.
-Or add a `.sdkmanrc` file containing `java=8.0.322-tem` inside `spring-petclinic/`, to switch each time you enter the project folder.
+Or add a `.sdkmanrc` file containing `java=8.0.322-tem` inside `spring-petclinic/`, https://sdkman.io/usage#env[to switch automatically each time you enter the project folder].
 
 === Apache Maven wrapper
-Next up we'll switch out the almost 7 years old Takari Maven Wrapper 3.3.3 for the more recent Apache Maven Wrapper version 3.8.5.
+Next up we'll switch out the almost 7 years old Takari Maven Wrapper 3.3.3 for the most recent Apache Maven Wrapper version 3.8.5.
+This ensures there's no incompatibilities running more recent plugins and Java versions.
+
 [source,bash]
 ----
 ./mvnw wrapper:wrapper -Dmaven=3.8.5
 ----
-This ensures there's no incompatibilities running more recent plugins and Java versions.
 
 === Verify
 At any step in the migration we can verify our setup produces a working build by invoking the Maven verify goal.
@@ -54,8 +60,11 @@ At any step in the migration we can verify our setup produces a working build by
 ----
 NOTE: We need neither `clean` nor `install` with well behaved plugins.
 
+This should produce a working build when run with Java 8.
+Runs with Java 11 and 17 fail for now; we'll get to those later.
+
 == Upgrade to JUnit 5
-To gain a bit of confidence with OpenRewrite, we'll first migrate our application from JUnit 4 to 5.
+To gain confidence with OpenRewrite, we'll first migrate our application from JUnit 4 to 5.
 JUnit 5 was released in September 2017, yet it's all too common to still see JUnit 4 on existing projects.
 
 Take a moment to think about what would be needed for a JUnit 4 to 5 migration;
@@ -63,6 +72,7 @@ you'll want add new dependencies, remove old dependencies, update imports, swap 
 It should become apparent that while some steps could be achieved with a search-and-replace operation, others are not as clear cut.
 
 Let's get OpenRewrite set up to apply our first automated migration:
+
 [source,bash]
 ----
 ./mvnw org.openrewrite.maven:rewrite-maven-plugin:4.21.0:init \ # <1>
@@ -108,23 +118,115 @@ index 6fdc4d1..755b35a 100644
    <reporting>
 ----
 
-=== JUnit5BestPractices
 If you take a closer look at the added https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
 you'll find it's composed of a `recipeList`, with references defined further down.
+Note how https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L46[the `recipeList` under `JUnit4to5Migration`] matches the migration steps we identified above.
 This is a common pattern with OpenRewrite recipes; complex migrations are composed of more fine grained recipes, each of which applies a small step in the full migration.
 
+=== Run JUnit 5 migration
+With the plugin configured, next comes running OpenRewrite.
+Notice how we can use the shorthand `rewrite` to invoke Maven plugin goals once the plugin is added to the project `pom.xml`.
 
-
-
-=== Run OpenRewrite
-TODO TODO TODO
 [source,bash]
 ----
 ./mvnw rewrite:run
 ----
 
+This command should complete in about a minute, and migrate all tests to JUnit 5, as well as updating the `pom.xml`.
+While most tests in the Spring PetClinic are fairly straightforward, the changes in `PetTypeFormatterTests` highlight a few strengths of OpenRewrite.
+Notice how it updates not just the imports and `@Test` annotations, but also method visibility, applies `MockitoExtension` and adopts `assertThrows`.
+
+[source,diff]
+----
+diff --git a/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java b/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
+index f332257..1d5e072 100644
+--- a/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
++++ b/src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java
+@@ -1,19 +1,20 @@
+ package org.springframework.samples.petclinic.owner;
+ 
+-import static org.junit.Assert.assertEquals;
+-
+ import java.text.ParseException;
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.List;
+ import java.util.Locale;
+ 
+-import org.junit.Before;
+-import org.junit.Test;
+-import org.junit.runner.RunWith;
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertThrows;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.extension.ExtendWith;
+ import org.mockito.Mock;
+ import org.mockito.Mockito;
+-import org.mockito.runners.MockitoJUnitRunner;
++import org.mockito.junit.jupiter.MockitoExtension;
+ import org.springframework.samples.petclinic.owner.PetRepository;
+ import org.springframework.samples.petclinic.owner.PetType;
+ import org.springframework.samples.petclinic.owner.PetTypeFormatter;
+@@ -23,7 +24,7 @@ import org.springframework.samples.petclinic.owner.PetTypeFormatter;
+  *
+  * @author Colin But
+  */
+-@RunWith(MockitoJUnitRunner.class)
++@ExtendWith(MockitoExtension.class)
+ public class PetTypeFormatterTests {
+ 
+     @Mock
+@@ -31,13 +32,13 @@ public class PetTypeFormatterTests {
+ 
+     private PetTypeFormatter petTypeFormatter;
+ 
+-    @Before
++    @BeforeEach
+     public void setup() {
+         this.petTypeFormatter = new PetTypeFormatter(pets);
+     }
+ 
+     @Test
+-    public void testPrint() {
++    void testPrint() {
+         PetType petType = new PetType();
+         petType.setName("Hamster");
+         String petTypeName = this.petTypeFormatter.print(petType, Locale.ENGLISH);
+@@ -45,16 +46,18 @@ public class PetTypeFormatterTests {
+     }
+ 
+     @Test
+-    public void shouldParse() throws ParseException {
++    void shouldParse() throws ParseException {
+         Mockito.when(this.pets.findPetTypes()).thenReturn(makePetTypes());
+         PetType petType = petTypeFormatter.parse("Bird", Locale.ENGLISH);
+         assertEquals("Bird", petType.getName());
+     }
+ 
+-    @Test(expected = ParseException.class)
+-    public void shouldThrowParseException() throws ParseException {
+-        Mockito.when(this.pets.findPetTypes()).thenReturn(makePetTypes());
+-        petTypeFormatter.parse("Fish", Locale.ENGLISH);
++    @Test
++    void shouldThrowParseException() throws ParseException {
++        assertThrows(ParseException.class, () -> {
++            Mockito.when(this.pets.findPetTypes()).thenReturn(makePetTypes());
++            petTypeFormatter.parse("Fish", Locale.ENGLISH);
++        });
+     }
+ 
+     /**
+----
+
+Now unfortunately this migration does not yet lead to a working build.
+Because we're still on Spring Boot 1.5.4, which comes with Maven Surefire plugin version 2.18.1, there's an incompatibility with running JUnit 5 tests.
+So let's skip onto upgrading to Spring Boot 2.5+!
 
 == Upgrade to Spring Boot 2.x
+
+
 [source,bash]
 ----
 ./mvnw rewrite:4.21.0:configure \
@@ -271,14 +373,15 @@ EOF
 java=17.0.2-tem
 ----
 
+== Travis CI
+TODO Custom rewrite.yml to convert travisci.yml from oraclejdk8 to 17
+
 == Remove plugin
 [source,bash]
 ----
 ./mvnw rewrite:remove
 ----
 
-
-== Travis CI
 
 
 == Versions
