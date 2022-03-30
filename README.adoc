@@ -446,7 +446,7 @@ EOF
 
 Now we are able to start using new language features in our updated Spring PetClinic application.
 
-== Java Cleanup
+== Cleanup 
 When we take a closer look through the application source code, we notice there's quite a few unnecessary imports.
 Luckily OpenRewrite also contains a large number of clean up recipes that we can use.
 The 
@@ -473,7 +473,7 @@ https://docs.openrewrite.org/reference/recipes/java[look at the Java collection 
 
 Also know OpenRewrite is not limited to Java; you can also explore recipes for related technology such as Maven, Gradle, XML, YAML, JSON, GitHub Actions, Kubernetes and more.
 
-== Remove plugin
+=== Remove plugin
 Once we're done migrating our application, we can have the OpenRewrite Maven plugin remove itself from our `pom.xml`.
 [source,bash]
 ----
