@@ -10,7 +10,8 @@ Along the way we will pick up JUnit 5, and migrate from Java 8 to 17, with minim
 
 We'll start with the Spring PetClinic Sample Application, back as it was almost five years ago in 2017!
 You can follow along by copy-pasting the commands and viewing the changes made in each step.
-You'll need git, patch and https://sdkman.io/[SDKMAN!], to easily switch between Java versions.
+You'll need git, patch and
+https://sdkman.io/[SDKMAN!], to easily switch between Java versions.
 Be sure to commit your changes after each command to get a clean diff of changes at each step.
 
 == Checkout Spring PetClinic 1.5.x
@@ -30,8 +31,7 @@ https://sdkman.io/[SDKMAN!] is a tool for managing parallel versions of multiple
 It provides a convenient Command Line Interface (CLI) and API for installing, switching, removing and listing Candidates. 
 ____
 Through SDKMAN! we'll install and switch between the Java versions used in this blogpost.
-Start by installing recent versions of Java 8 and 17.
-To start we'll activate Java 8.
+Start by installing recent versions of Java 8 and 17, and activate Java 8.
 [source,bash]
 ----
 # curl -s "https://get.sdkman.io" | bash
@@ -40,7 +40,8 @@ sdk install java 17.0.2-tem
 sdk use java 8.0.322-tem
 ----
 Keep the terminal window open to stay on Java 8.
-Or add a `.sdkmanrc` file containing `java=8.0.322-tem` inside `spring-petclinic/`, https://sdkman.io/usage#env[to switch automatically each time you enter the project folder].
+Or add a `.sdkmanrc` file containing `java=8.0.322-tem` inside `spring-petclinic/`,
+https://sdkman.io/usage#env[to switch automatically each time you enter the project folder].
 
 === Apache Maven wrapper
 Next up we'll switch out the almost 7 years old Takari Maven Wrapper 3.3.3 for the most recent Apache Maven Wrapper version 3.8.5.
@@ -57,17 +58,17 @@ At any step in the migration we can verify our setup produces a working build by
 ----
 ./mvnw verify
 ----
-NOTE: We need neither `clean` nor `install` with well behaved plugins.
+NOTE: We need neither `clean` nor `install` when using well behaved plugins.
 
 This should produce a working build when run with Java 8.
-Runs with Java 11 and 17 fail for now; we'll get to those later.
+Runs with Java 17 fail for now; we'll get to those later.
 
 == Upgrade to JUnit 5
-To gain confidence with OpenRewrite, we'll first migrate our application from JUnit 4 to 5.
+To gain confidence with OpenRewrite, we'll first try to migrate our application from JUnit 4 to 5.
 JUnit 5 was released in September 2017, yet it's all too common to still see JUnit 4 on existing projects.
 
 Take a moment to think about what would be needed for a JUnit 4 to 5 migration;
-you'll want add new dependencies, remove old dependencies, update imports, swap argument orders in assertions, before getting into more complicated patterns such as replacing `@Rule` usage.
+we will need to add new dependencies, remove old dependencies, update imports, occasionally swap argument orders in assertions, before getting into more complicated patterns such as replacing `@Rule` usage.
 It should become apparent that while some steps could be achieved with a search-and-replace operation, others are not as clear cut.
 
 Let's get OpenRewrite set up to apply our first automated migration:
@@ -79,9 +80,12 @@ Let's get OpenRewrite set up to apply our first automated migration:
   -DactiveRecipes=org.openrewrite.java.testing.junit5.JUnit5BestPractices # <3>
 git diff # <4>
 ----
-<1> We run the https://github.com/openrewrite/rewrite-maven-plugin/commit/5eb473459c89b3d2e68725954b83961e25884e72#diff-fc4bf45cce52d87b08e87c74ad12ec6d162411854ee84c96c19bbf02954c0342R19[recently added InitMojo] to add the `rewrite-maven-plugin` to the `pom.xml`.
-<2> We add a dependency on https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks] to the plugin.
-<3> We activate https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
+<1> We run the
+https://github.com/openrewrite/rewrite-maven-plugin/commit/5eb473459c89b3d2e68725954b83961e25884e72#diff-fc4bf45cce52d87b08e87c74ad12ec6d162411854ee84c96c19bbf02954c0342R19[recently added InitMojo] to add the `rewrite-maven-plugin` to the `pom.xml`.
+<2> We add a dependency on
+https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks] to the plugin.
+<3> We activate
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
 <4> The diff should show the plugin added to the project
 
 .`pom.xml` build plugin added after `init`
@@ -117,9 +121,11 @@ index 6fdc4d1..755b35a 100644
    <reporting>
 ----
 
-If you take a closer look at the added https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
+If you take a closer look at the added
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
 you'll find it's composed of a `recipeList`, with references defined further down.
-Note how https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L46[the `recipeList` under `JUnit4to5Migration`] matches the migration steps we identified above.
+Note how
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L46[the `recipeList` under `JUnit4to5Migration`] matches some of the migration steps we identified above.
 This is a common pattern with OpenRewrite recipes; complex migrations are composed of more fine grained recipes, each of which applies a small step in the full migration.
 
 === Run JUnit 5 migration
@@ -220,7 +226,8 @@ index f332257..1d5e072 100644
 ----
 
 Now unfortunately this migration does not yet lead to a working build, due to a Spring Boot incompatibility.
-https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.2-Release-Notes#junit-5[JUnit 5 support was added in Spring Boot 2.2], while https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.4-Release-Notes[JUnit 5’s Vintage Engine was dropped in Spring Boot 2.4].
+https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.2-Release-Notes#junit-5[JUnit 5 support was added in Spring Boot 2.2], while
+https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.4-Release-Notes[JUnit 5’s Vintage Engine was dropped in Spring Boot 2.4].
 
 So let's revert this partial JUnit 5 migration for now, as it will be picked (correctly) up as part of the Spring Boot migration.
 
@@ -230,7 +237,7 @@ git reset --hard
 ----
 
 == Upgrade to Spring Boot 2.x
-To upgrade from Spring Boot we need a different dependency and recipe.
+To upgrade Spring Boot applications we need a different dependency and recipe.
 We invoke the rewrite plugin `configure` goal for the plugin to update it's own configuration. Neat!
 
 [source,bash]
@@ -240,9 +247,10 @@ We invoke the rewrite plugin `configure` goal for the plugin to update it's own 
   -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration
 ----
 
-NOTE: The `configure` goal only works if the plugin is already present; if not present replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.21.0:init`.
+NOTE: The `configure` goal only works if the plugin is already present; if not replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.21.0:init`.
 
-We can again see how the https://github.com/openrewrite/rewrite-spring/blob/v4.18.0/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
+We can again see how the
+https://github.com/openrewrite/rewrite-spring/blob/v4.18.0/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
 If you look closely these migration takes us first to 2.0.x, then 2.1.x, 2.2.x, all the way through to 2.5.x at present, with 2.6.x still in development.
 As indicated above a JUnit 5 migration will be executed as part of the Spring Boot 2.4.x migration.
 
@@ -256,8 +264,7 @@ We again run OpenRewrite to upgrade our application.
 This results in a large changeset, with notable changes to `src/main/resources/application.properties` and `pom.xml`, and relatively small changes in `src/main/java`.
 The same test changes that we saw before with the isolated migration to JUnit 5 are again present.
 
-== Verify & fix tests
-
+=== Verify & fix tests
 The big change now is that we can once again run our build, with a small caveat.
 
 [source,bash]
@@ -273,7 +280,9 @@ Two tests fail after the migration to Spring Boot 2.5.x.
   [ERROR]   ValidatorTests.shouldNotValidateWhenFirstNameEmpty:42 
   expected: "may not be empty"
   but was : "must not be empty"
-  [ERROR]   VetControllerTests.testShowResourcesVetList:67 Content type expected:<application/json;charset=UTF-8> but was:<application/json>
+  [ERROR]   VetControllerTests.testShowResourcesVetList:67 Content type
+  expected: <application/json;charset=UTF-8>
+  but was: <application/json>
   [INFO] 
   [ERROR] Tests run: 41, Failures: 2, Errors: 0, Skipped: 1
 
@@ -281,7 +290,7 @@ The `ValidatorTests.shouldNotValidateWhenFirstNameEmpty` failure is caused by a 
 The `VetControllerTests.testShowResourcesVetList` failure is caused by a change in the returned media type.
 Both tests are easily fixed with small patch command.
 
-.`patch` command to fix test failures
+.`patch` command to fix ValidatorTests & VetControllerTests
 [source,diff]
 ----
 patch -p1 << EOF
@@ -318,7 +327,8 @@ That means our migration to Spring Boot 2.5 and JUnit 5 worked!
 
 == Upgrade to Java 17
 Next we want to adopt the Java 17 runtime, for whch we need yet another dependency and recipe.
-We will run the https://github.com/openrewrite/rewrite-migrate-java/blob/main/src/main/resources/META-INF/rewrite/java8-to-java11.yml#L18[Java8toJava11] recipe, which comprises a number of fixes to be compatible with Java 11 runtime.
+We will run the
+https://github.com/openrewrite/rewrite-migrate-java/blob/main/src/main/resources/META-INF/rewrite/java8-to-java11.yml#L18[Java8toJava11] recipe, which comprises a number of fixes to be compatible with Java 11 runtime.
 There's no need for a recipe yet to explicitly upgrade to Java 17.
 
 [source,bash]
@@ -368,7 +378,8 @@ index 681a480..5c59ee0 100644
 ----
 
 https://www.oracle.com/java/technologies/javase/11-relnote-issues.html#JDK-8190378[Java 11 removed the Java EE modules], which is why we need the `jaxb-impl` when running on Java 11+.
-The https://maven.apache.org/plugins/maven-jdeprscan-plugin/jdeprscan-mojo.html[maven-jdeprscan-plugin] surfaces any incompatibilities when running the `jdeprscan` goal on Java 11+.
+The
+https://maven.apache.org/plugins/maven-jdeprscan-plugin/jdeprscan-mojo.html[maven-jdeprscan-plugin] surfaces any incompatibilities when running the `jdeprscan` goal on Java 11+.
 
 Unfortunately, when we swich to Java 17 we can see there's a few minor fixes we need to apply still.
 
@@ -379,9 +390,11 @@ sdk use java 17.0.2-tem
 ----
 
 === Upgrade Wro4j and replace Cobertura with JaCoCo
-The build still uses problematic old versions of https://github.com/wro4j/wro4j[`wro4j`] and http://cobertura.github.io/cobertura/[Cobertura].
-The former we can upgrade, but the latter we can best replace with the more modern https://www.eclemma.org/jacoco/[JaCoCo].
-We cheat just a little bit by cherry picking out of the main branch, after which we bump both `wro4j` and `JaCoCo`.
+The build still uses problematic old versions of
+https://github.com/wro4j/wro4j[`wro4j`] and http://cobertura.github.io/cobertura/[Cobertura].
+The former we can upgrade, but the latter we can best replace with the more modern
+https://www.eclemma.org/jacoco/[JaCoCo].
+We cheat just a little bit by cherry picking out of the main branch, after which we patch both `wro4j` and `JaCoCo`.
 
 [source,bash]
 ----
@@ -409,7 +422,9 @@ That's enough to resolve our build issues; we're now compatible with the Java 17
 Our source level is still at 1.8 though, so we can not yet use any new language feautures.
 
 === Patch java.version
-The update the source level we override the `java.version` property https://github.com/spring-projects/spring-boot/blob/2.6.x/spring-boot-project/spring-boot-starters/spring-boot-starter-parent/build.gradle#L22[defined in the Spring Boot parent `pom.xml`].
+To update the source level we override the `java.version` property
+https://github.com/spring-projects/spring-boot/blob/2.6.x/spring-boot-project/spring-boot-starters/spring-boot-starter-parent/build.gradle#L22[defined in the Spring Boot parent `pom.xml`].
+That sets both `maven.compiler.source` and `maven.compiler.target` to use Java 17 as well, unlocking new language features such as text blocks and records.
 
 [source,diff]
 ----
@@ -429,8 +444,21 @@ index 9701237..818e20d 100644
 EOF
 ----
 
+Now we are able to start using new language features in our updated Spring PetClinic application.
+
 == Java Cleanup
-TODO Add opens for running OpenRewrite on Java 17.
+When we take a closer look through the application source code, we notice there's quite a few unnecessary imports.
+Luckily OpenRewrite also contains a large number of clean up recipes that we can use.
+The 
+https://docs.openrewrite.org/reference/recipes/java/removeunusedimports[RemoveUnusedImports] recipe in particular comes in handy here.
+
+CAUTION: Be aware that OpenRewrite presently requires access to Java compiler internals to function.
+On JDK 17+ you can opt-in to access these internals via
+https://docs.openrewrite.org/getting-started/getting-started#running-on-jdk-16-and-newer[`--add-exports` in a number ways].
+Adding --ad-exports statements to `.mvn/jvm.config` is by far the easiest way to set these parameters.
+
+Reconfigure the plugin to activate and run this new recipe;
+This recipe does not need any additional dependencies.
 
 [source,bash]
 ----
@@ -439,25 +467,28 @@ TODO Add opens for running OpenRewrite on Java 17.
 ./mvnw rewrite:run
 ----
 
-[source,bash]
-----
-./mvnw rewrite:configure \
-  -DactiveRecipes=org.openrewrite.java.cleanup.CommonStaticAnalysis
-./mvnw rewrite:run
-----
+That concludes the Java recipes we will run against the Spring PetClinic for now.
+But there's a host of other recipes to explore still;
+https://docs.openrewrite.org/reference/recipes/java[look at the Java collection of recipes] to see which might be applicable to your projects.
 
-
-== Travis CI
-TODO Custom rewrite.yml to convert travisci.yml from oraclejdk8 to 17
+Also know OpenRewrite is not limited to Java; you can also explore recipes for related technology such as Maven, Gradle, XML, YAML, JSON, GitHub Actions, Kubernetes and more.
 
 == Remove plugin
+Once we're done migrating our application, we can have the OpenRewrite Maven plugin remove itself from our `pom.xml`.
 [source,bash]
 ----
 ./mvnw rewrite:remove
 ----
+That concludes our first look at OpenRewrite.
+Be sure to reach out if you encounter any issues; I've found the folks behind OpenRewrite are _very_ responsive with any issues.
 
+== Versions used
 
-
-== Versions
-rewrite-maven-plugin:4.21.0
-rewrite-spring:4.18.0
+- rewrite-maven-plugin:4.21.0
+- rewrite-migrate-java:1.3.0
+- rewrite-spring:4.19.0-SNAPSHOT
+- rewrite-testing-frameworks:1.19.0
+- Java 8.0.322 Temurin
+- Java 17.0.2 Temurin
+- Apache Maven 3.8.5
+- SDKMAN! 5.14.2
