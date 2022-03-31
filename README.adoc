@@ -454,7 +454,7 @@ https://docs.openrewrite.org/reference/recipes/java/removeunusedimports[RemoveUn
 
 CAUTION: Be aware that OpenRewrite presently requires access to Java compiler internals to function.
 On JDK 17+ you can opt-in to access these internals via
-https://docs.openrewrite.org/getting-started/getting-started#running-on-jdk-16-and-newer[`--add-exports` in a number ways].
+https://docs.openrewrite.org/getting-started/getting-started#running-on-jdk-16-and-newer[`--add-exports` in a number of ways].
 Adding --ad-exports statements to `.mvn/jvm.config` is by far the easiest way to set these parameters.
 
 Reconfigure the plugin to activate and run this new recipe;
