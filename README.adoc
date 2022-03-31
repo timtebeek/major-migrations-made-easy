@@ -86,7 +86,7 @@ https://github.com/openrewrite/rewrite-maven-plugin/commit/5eb473459c89b3d2e6872
 https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks] to the plugin.
 <3> We activate
 https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.19.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
-<4> The diff should show the plugin added to the project
+<4> The diff should show the plugin added to the project.
 
 .`pom.xml` build plugin added after `init`
 [source,diff]
@@ -229,7 +229,7 @@ Now unfortunately this migration does not yet lead to a working build, due to a 
 https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.2-Release-Notes#junit-5[JUnit 5 support was added in Spring Boot 2.2], while
 https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.4-Release-Notes[JUnit 5’s Vintage Engine was dropped in Spring Boot 2.4].
 
-So let's revert this partial JUnit 5 migration for now, as it will be picked (correctly) up as part of the Spring Boot migration.
+So let's revert this partial JUnit 5 migration for now, as it will be picked up (correctly) as part of the Spring Boot migration.
 
 [source,bash]
 ----
@@ -274,23 +274,26 @@ The big change now is that we can once again run our build, with a small caveat.
 
 Two tests fail after the migration to Spring Boot 2.5.x.
 
-  [INFO] Results:
-  [INFO] 
-  [ERROR] Failures: 
-  [ERROR]   ValidatorTests.shouldNotValidateWhenFirstNameEmpty:42 
-  expected: "may not be empty"
-  but was : "must not be empty"
-  [ERROR]   VetControllerTests.testShowResourcesVetList:67 Content type
-  expected: <application/json;charset=UTF-8>
-  but was: <application/json>
-  [INFO] 
-  [ERROR] Tests run: 41, Failures: 2, Errors: 0, Skipped: 1
+[source,text]
+----
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   ValidatorTests.shouldNotValidateWhenFirstNameEmpty:42 
+expected: "may not be empty"
+but was : "must not be empty"
+[ERROR]   VetControllerTests.testShowResourcesVetList:67 Content type
+expected: <application/json;charset=UTF-8>
+but was: <application/json>
+[INFO] 
+[ERROR] Tests run: 41, Failures: 2, Errors: 0, Skipped: 1
+----
 
 The `ValidatorTests.shouldNotValidateWhenFirstNameEmpty` failure is caused by a change in the validation implementation.
 The `VetControllerTests.testShowResourcesVetList` failure is caused by a change in the returned media type.
 Both tests are easily fixed with small patch command.
 
-.`patch` command to fix ValidatorTests & VetControllerTests
+.`patch` ValidatorTests & VetControllerTests
 [source,diff]
 ----
 patch -p1 << EOF
@@ -377,7 +380,7 @@ index 681a480..5c59ee0 100644
    <reporting>
 ----
 
-https://www.oracle.com/java/technologies/javase/11-relnote-issues.html#JDK-8190378[Java 11 removed the Java EE modules], which is why we need the `jaxb-impl` when running on Java 11+.
+https://www.oracle.com/java/technologies/javase/11-relnote-issues.html#JDK-8190378[Java 11 removed the Java EE modules], which is why we need `jaxb-impl` when running on Java 11+.
 The
 https://maven.apache.org/plugins/maven-jdeprscan-plugin/jdeprscan-mojo.html[maven-jdeprscan-plugin] surfaces any incompatibilities when running the `jdeprscan` goal on Java 11+.
 
@@ -396,7 +399,7 @@ The former we can upgrade, but the latter we can best replace with the more mode
 https://www.eclemma.org/jacoco/[JaCoCo].
 We cheat just a little bit by cherry picking out of the main branch, after which we patch both `wro4j` and `JaCoCo`.
 
-[source,bash]
+[source,diff]
 ----
 git cherry-pick 60105d5d9a8b64d29927b98cd06d6d811fd4bb52
 patch -p1 << EOF
@@ -455,7 +458,7 @@ https://docs.openrewrite.org/reference/recipes/java/removeunusedimports[RemoveUn
 CAUTION: Be aware that OpenRewrite presently requires access to Java compiler internals to function.
 On JDK 17+ you can opt-in to access these internals via
 https://docs.openrewrite.org/getting-started/getting-started#running-on-jdk-16-and-newer[`--add-exports` in a number of ways].
-Adding --ad-exports statements to `.mvn/jvm.config` is by far the easiest way to set these parameters.
+Adding --add-exports statements to `.mvn/jvm.config` is by far the easiest way to set these parameters.
 
 Reconfigure the plugin to activate and run this new recipe;
 This recipe does not need any additional dependencies.
