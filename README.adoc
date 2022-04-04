@@ -243,14 +243,14 @@ We invoke the rewrite plugin `configure` goal for the plugin to update it's own 
 [source,bash]
 ----
 ./mvnw rewrite:configure \
-  -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.19.0 \
+  -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.19.1 \
   -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration
 ----
 
 NOTE: The `configure` goal only works if the plugin is already present; if not replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.22.0:init`.
 
 We can again see how the
-https://github.com/openrewrite/rewrite-spring/blob/v4.19.0/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
+https://github.com/openrewrite/rewrite-spring/blob/v4.19.1/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
 If you look closely these migration takes us first to 2.0.x, then 2.1.x, 2.2.x, all the way through to 2.5.x at present, with 2.6.x still in development.
 As indicated above a JUnit 5 migration will be executed as part of the Spring Boot 2.4.x migration.
 
@@ -476,7 +476,7 @@ Be sure to reach out if you encounter any issues; I've found the folks behind Op
 
 - rewrite-maven-plugin:4.22.0
 - rewrite-migrate-java:1.4.0
-- rewrite-spring:4.19.0
+- rewrite-spring:4.19.1
 - rewrite-testing-frameworks:1.20.0
 - Java 8.0.322 Temurin
 - Java 17.0.2 Temurin
