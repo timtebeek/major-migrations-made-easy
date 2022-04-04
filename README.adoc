@@ -333,7 +333,7 @@ Next we want to adopt the Java 17 runtime.
 
 === Replace Cobertura with JaCoCo
 To prepare for our Java 17 migration, we first need fix the outdated
-http://cobertura.github.io/cobertura/[Cobertura] code coverage plugin.
+http://cobertura.github.io/cobertura/[Cobertura] code coverage plugin,
 which we can best replace with the more modern
 https://www.eclemma.org/jacoco/[JaCoCo].
 We cheat just a little bit by cherry picking that change out of the main branch.
