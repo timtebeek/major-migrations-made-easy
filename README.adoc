@@ -76,7 +76,7 @@ Let's get OpenRewrite set up to apply our first automated migration:
 [source,bash]
 ----
 ./mvnw org.openrewrite.maven:rewrite-maven-plugin:4.22.0:init \ # <1>
-  -Ddependencies=org.openrewrite.recipe:rewrite-testing-frameworks:1.20.0 \ # <2>
+  -Ddependencies=org.openrewrite.recipe:rewrite-testing-frameworks:1.20.1 \ # <2>
   -DactiveRecipes=org.openrewrite.java.testing.junit5.JUnit5BestPractices # <3>
 git diff # <4>
 ----
@@ -85,7 +85,7 @@ https://github.com/openrewrite/rewrite-maven-plugin/commit/5eb473459c89b3d2e6872
 <2> We add a dependency on
 https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks] to the plugin.
 <3> We activate
-https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.1/src/main/resources/META-INF/rewrite/junit5.yml#L18[the JUnit5BestPractices recipe].
 <4> The diff should show the plugin added to the project.
 
 .`pom.xml` build plugin added after `init`
@@ -122,10 +122,10 @@ index 6fdc4d1..755b35a 100644
 ----
 
 If you take a closer look at the added
-https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.0/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.1/src/main/resources/META-INF/rewrite/junit5.yml#L18[JUnit5BestPractices recipe],
 you'll find it's composed of a `recipeList`, with references defined further down.
 Note how
-https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.0/src/main/resources/META-INF/rewrite/junit5.yml#L46[the `recipeList` under `JUnit4to5Migration`] matches some of the migration steps we identified above.
+https://github.com/openrewrite/rewrite-testing-frameworks/blob/v1.20.1/src/main/resources/META-INF/rewrite/junit5.yml#L46[the `recipeList` under `JUnit4to5Migration`] matches some of the migration steps we identified above.
 This is a common pattern with OpenRewrite recipes; complex migrations are composed of more fine grained recipes, each of which applies a small step in the full migration.
 
 === Run JUnit 5 migration
@@ -243,14 +243,14 @@ We invoke the rewrite plugin `configure` goal for the plugin to update it's own 
 [source,bash]
 ----
 ./mvnw rewrite:configure \
-  -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.19.1 \
+  -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.19.2 \
   -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration
 ----
 
 NOTE: The `configure` goal only works if the plugin is already present; if not replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.22.0:init`.
 
 We can again see how the
-https://github.com/openrewrite/rewrite-spring/blob/v4.19.1/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
+https://github.com/openrewrite/rewrite-spring/blob/v4.19.2/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
 If you look closely these migration takes us first to 2.0.x, then 2.1.x, 2.2.x, all the way through to 2.5.x at present, with 2.6.x still in development.
 As indicated above a JUnit 5 migration will be executed as part of the Spring Boot 2.4.x migration.
 
@@ -352,7 +352,7 @@ There's no need for a recipe yet to explicitly upgrade to Java 17.
 [source,bash]
 ----
 ./mvnw rewrite:configure \
-  -Ddependencies=org.openrewrite.recipe:rewrite-migrate-java:1.4.0 \
+  -Ddependencies=org.openrewrite.recipe:rewrite-migrate-java:1.4.1 \
   -DactiveRecipes=org.openrewrite.java.migrate.Java8toJava11
 ./mvnw rewrite:run
 ----
@@ -475,9 +475,9 @@ Be sure to reach out if you encounter any issues; I've found the folks behind Op
 == Versions used
 
 - rewrite-maven-plugin:4.22.0
-- rewrite-migrate-java:1.4.0
-- rewrite-spring:4.19.1
-- rewrite-testing-frameworks:1.20.0
+- rewrite-migrate-java:1.4.1
+- rewrite-spring:4.19.2
+- rewrite-testing-frameworks:1.20.1
 - Java 8.0.322 Temurin
 - Java 17.0.2 Temurin
 - Apache Maven 3.8.5
