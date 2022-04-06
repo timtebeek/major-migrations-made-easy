@@ -21,7 +21,7 @@ Start by checking out the relevant branch of Spring PetClinic locally.
 ----
 git clone https://github.com/spring-projects/spring-petclinic.git;
 cd spring-petclinic;
-git checkout -b 1.5.x;
+git switch -c 2.5.x 1.5.x;
 ----
 
 === SDKMAN!
@@ -75,7 +75,7 @@ Let's get OpenRewrite set up to apply our first automated migration:
 
 [source,bash]
 ----
-./mvnw org.openrewrite.maven:rewrite-maven-plugin:4.22.0:init \ # <1>
+./mvnw org.openrewrite.maven:rewrite-maven-plugin:4.22.1:init \ # <1>
   -Ddependencies=org.openrewrite.recipe:rewrite-testing-frameworks:1.20.1 \ # <2>
   -DactiveRecipes=org.openrewrite.java.testing.junit5.JUnit5BestPractices # <3>
 git diff # <4>
@@ -102,7 +102,7 @@ index 6fdc4d1..755b35a 100644
 +      <plugin>
 +        <groupId>org.openrewrite.maven</groupId>
 +        <artifactId>rewrite-maven-plugin</artifactId>
-+        <version>4.21.0</version>
++        <version>4.22.1</version>
 +        <configuration>
 +          <activeRecipes>
 +            <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
@@ -112,7 +112,7 @@ index 6fdc4d1..755b35a 100644
 +          <dependency>
 +            <groupId>org.openrewrite.recipe</groupId>
 +            <artifactId>rewrite-testing-frameworks</artifactId>
-+            <version>1.19.0</version>
++            <version>1.20.1</version>
 +          </dependency>
 +        </dependencies>
 +      </plugin>
@@ -247,7 +247,7 @@ We invoke the rewrite plugin `configure` goal for the plugin to update it's own 
   -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration
 ----
 
-NOTE: The `configure` goal only works if the plugin is already present; if not replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.22.0:init`.
+NOTE: The `configure` goal only works if the plugin is already present; if not replace `rewrite:configure` with `org.openrewrite.maven:rewrite-maven-plugin:4.22.1:init`.
 
 We can again see how the
 https://github.com/openrewrite/rewrite-spring/blob/v4.19.2/src/main/resources/META-INF/rewrite/spring-boot2.yml[SpringBoot1To2Migration] is composed of finer grained recipes.
@@ -352,7 +352,7 @@ There's no need for a recipe yet to explicitly upgrade to Java 17.
 [source,bash]
 ----
 ./mvnw rewrite:configure \
-  -Ddependencies=org.openrewrite.recipe:rewrite-migrate-java:1.4.1 \
+  -Ddependencies=org.openrewrite.recipe:rewrite-migrate-java:1.4.2 \
   -DactiveRecipes=org.openrewrite.java.migrate.Java8toJava11
 ./mvnw rewrite:run
 ----
@@ -362,9 +362,30 @@ On our project the `Java8toJava11` recipe produces the following relevant change
 [source,diff]
 ----
 diff --git a/pom.xml b/pom.xml
-index 681a480..5c59ee0 100644
+index b058c6c..49d7e34 100644
 --- a/pom.xml
 +++ b/pom.xml
+@@ -17,7 +17,7 @@
+   <properties>
+ 
+     <!-- Generic properties -->
+-    <java.version>1.8</java.version>
++    <java.version>11</java.version>
+     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+ 
+@@ -25,9 +25,9 @@
+     <webjars-bootstrap.version>3.3.6</webjars-bootstrap.version>
+     <webjars-jquery-ui.version>1.11.4</webjars-jquery-ui.version>
+     <webjars-jquery.version>2.2.4</webjars-jquery.version>
+-    <wro4j.version>1.8.0</wro4j.version>
++    <wro4j.version>1.10.1</wro4j.version>
+ 
+-    <jacoco.version>0.8.1</jacoco.version>
++    <jacoco.version>0.8.7</jacoco.version>
+ 
+   </properties>
+ 
 @@ -122,6 +122,12 @@
        <artifactId>jquery-ui</artifactId>
        <version>${webjars-jquery-ui.version}</version>
@@ -378,7 +399,7 @@ index 681a480..5c59ee0 100644
      <dependency>
        <groupId>org.webjars</groupId>
        <artifactId>bootstrap</artifactId>
-@@ -247,6 +253,14 @@
+@@ -245,6 +251,14 @@
            </dependency>
          </dependencies>
        </plugin>
@@ -392,12 +413,15 @@ index 681a480..5c59ee0 100644
 +      </plugin>
      </plugins>
    </build>
-   <reporting>
 ----
 
+Notice how the `java.version` Maven property is changed to `11`, which sets `maven.compiler.source` and `maven.compiler.target`. This unlocks Java 11 language features such as `var`.
+
 https://www.oracle.com/java/technologies/javase/11-relnote-issues.html#JDK-8190378[Java 11 removed the Java EE modules], which is why we need `jaxb-impl` when running on Java 11+.
+
 The
 https://maven.apache.org/plugins/maven-jdeprscan-plugin/jdeprscan-mojo.html[maven-jdeprscan-plugin] surfaces any incompatibilities when running the `jdeprscan` goal on Java 11+.
+
 Along the way 
 https://alexo.github.io/wro4j/[Wro4j] and JaCoCo are updated to their latest versions as well.
 
@@ -409,7 +433,7 @@ sdk use java 17.0.2-tem
 ./mvnw verify
 ----
 
-Our source level is still at 1.8 though, so we can not yet use any new language feautures.
+Our source level is still at 11 though, so we can not yet use any Java 17 language feautures.
 
 === Patch java.version
 To update the source level we override the `java.version` property
@@ -427,14 +451,14 @@ index 9701237..818e20d 100644
    <properties>
  
      <!-- Generic properties -->
--    <java.version>1.8</java.version>
+-    <java.version>11</java.version>
 +    <java.version>17</java.version>
      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
      <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 EOF
 ----
 
-Now we are able to start using new language features in our updated Spring PetClinic application.
+Now we are able to start using Java 17 language features in our updated Spring PetClinic application.
 
 == Cleanup 
 When we take a closer look through the application source code, we notice there's quite a few unnecessary imports.
@@ -474,11 +498,12 @@ Be sure to reach out if you encounter any issues; I've found the folks behind Op
 
 == Versions used
 
-- rewrite-maven-plugin:4.22.0
-- rewrite-migrate-java:1.4.1
+- rewrite-maven-plugin:4.22.1
+- rewrite-migrate-java:1.4.2
 - rewrite-spring:4.19.2
 - rewrite-testing-frameworks:1.20.1
 - Java 8.0.322 Temurin
 - Java 17.0.2 Temurin
 - Apache Maven 3.8.5
+- Git 2.25.1
 - SDKMAN! 5.14.2
