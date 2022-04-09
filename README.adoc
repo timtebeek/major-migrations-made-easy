@@ -498,10 +498,10 @@ Be sure to reach out if you encounter any issues; I've found the folks behind Op
 
 == Versions used
 
-- rewrite-maven-plugin:4.22.1
-- rewrite-migrate-java:1.4.2
-- rewrite-spring:4.19.2
-- rewrite-testing-frameworks:1.20.1
+- https://github.com/openrewrite/rewrite-maven-plugin[rewrite-maven-plugin]:4.22.1
+- https://github.com/openrewrite/rewrite-migrate-java[rewrite-migrate-java]:1.4.2
+- https://github.com/openrewrite/rewrite-spring[rewrite-spring]:4.19.2
+- https://github.com/openrewrite/rewrite-testing-frameworks[rewrite-testing-frameworks]:1.20.1
 - Java 8.0.322 Temurin
 - Java 17.0.2 Temurin
 - Apache Maven 3.8.5
